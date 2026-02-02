@@ -314,7 +314,7 @@ Similar to Simpson et al. 2020 ([https://arxiv.org/pdf/1911.10183](https://arxiv
 #### Active learning loop (common to all Bayesian modes)
 
 At each round, we:
-1. Score candidates for the current post using the current policy (relative to a frozen reference model)
+1. Score candidates for the current topic using the current policy
 2. Use the chosen Bayesian approximation to estimate uncertainty over utilities
 3. Select an informative pair of candidates via an acquisition function
 4. Obtain a preference label (simulated user aka LLM-judge)
