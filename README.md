@@ -324,6 +324,11 @@ At each round, we:
 
 ## Evaluation
 - NDCG@20
-- ![Bayesian DPO overview](compared(aq).png)
+
+<p align="center">
+  <img src="compared(aq).png" width="720" alt="Bayesian DPO overview">
+  <br>
+  <em>Figure 1: Bayesian DPO pipeline (MCD).</em>
+</p>
   
 
