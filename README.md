@@ -201,32 +201,55 @@ $$
 Active learning then relies on (an approximation to) a **utility posterior**, commonly summarized by $(\mu,\Sigma_u)$, where $\mu \approx \mathbb{E}[u]$ and $\Sigma_u \approx \mathrm{Cov}(u)$.
 
 ---
-
 ##### MC Dropout (MCD): posterior in utility space via stochastic forward passes
 
-MCD does **not** construct an explicit Gaussian posterior over parameters. Instead, it induces an implicit posterior by enabling dropout at inference time and sampling multiple stochastic forward passes.
+MCD does **not** construct an explicit Gaussian posterior over parameters. Instead, it induces an implicit posterior by
+enabling dropout at inference time and running multiple stochastic forward passes.
 
-1. **Sample utilities** (dropout ON): for $t=1,\dots,T$,
+We treat each stochastic forward pass as a sample of the **utility vector** over the candidate pool.
 
-   $$
-   u^{(t)}(x,y) \;=\; u_{\theta,m_t}(x,y),
-   $$
+<ol>
+  <li>
+    <b>Sample utility vectors</b> (dropout ON). For <i>t</i> = 1,…,T, compute utilities for all candidates and form
+    a vector sample:
+    <p>
+    $$
+    u^{(t)} \;=\; \big[u_{\theta,m_t}(x,y_1), \dots, u_{\theta,m_t}(x,y_N)\big]^\top,
+    $$
+    where \(m_t\) is a sampled dropout mask.
+    </p>
+  </li>
 
-   where $m_t$ is a sampled dropout mask.
+  <li>
+    <b>Estimate the utility mean</b>:
+    <p>
+    $$
+    \mu \;=\; \frac{1}{T}\sum_{t=1}^{T} u^{(t)}.
+    $$
+    </p>
+  </li>
 
-2. **Estimate utility mean and covariance** from the samples:
+  <li>
+    <b>Estimate the utility covariance</b> (sample covariance):
+    <p>
+    $$
+    \Sigma_u \;\approx\; \frac{1}{T-1}\sum_{t=1}^{T}\big(u^{(t)}-\mu\big)\big(u^{(t)}-\mu\big)^\top.
+    $$
+    </p>
+  </li>
 
-   $$
-   \mu \;=\; \frac{1}{T}\sum_{t=1}^T u^{(t)}, 
-   \qquad
-   \Sigma_u \;\approx\; \mathrm{Cov}\big(\{u^{(t)}\}_{t=1}^T\big).
-   $$
-
-3. **Pairwise uncertainty** can be derived either from samples directly (by sampling $\Delta u^{(t)}$) or from $(\mu,\Sigma_u)$ via:
-
-   $$
-   \mathrm{Var}(\Delta u_{ij}) \;=\; \Sigma_{u,ii} + \Sigma_{u,jj} - 2\Sigma_{u,ij}.
-   $$
+  <li>
+    <b>Pairwise uncertainty</b> for candidates \(i,j\) follows from \((\mu,\Sigma_u)\). The utility gap is
+    \(\Delta u_{ij} = u_i - u_j\), and its variance is:
+    <p>
+    $$
+    \mathrm{Var}(\Delta u_{ij})
+    \;=\;
+    \Sigma_{u,ii} + \Sigma_{u,jj} - 2\Sigma_{u,ij}.
+    $$
+    </p>
+  </li>
+</ol>
 
 **MCD gives uncertainty in utility space "for free" because we sample utilities directly.**
 
