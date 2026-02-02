@@ -228,7 +228,7 @@ MCD does **not** construct an explicit Gaussian posterior over parameters. Inste
    \mathrm{Var}(\Delta u_{ij}) \;=\; \Sigma_{u,ii} + \Sigma_{u,jj} - 2\Sigma_{u,ij}.
    $$
 
-**MCD gives uncertainty in utility space “for free” because we sample utilities directly.**
+**MCD gives uncertainty in utility space "for free" because we sample utilities directly.**
 
 ---
 
