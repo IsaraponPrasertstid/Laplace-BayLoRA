@@ -272,31 +272,26 @@ Since computing the full Jacobian $J$ is infeasible for LLMs, we estimate utilit
 
 ---
 
+
 ##### SWAG: parameter posterior from snapshots $\Rightarrow$ utility posterior via sampling
 
-SWAG (Stochastic Weight Averaging–Gaussian) approximates a posterior over parameters using **training trajectory snapshots** instead of curvature.
+SWAG (Stochastic Weight Averaging–Gaussian) approximates a posterior over parameters using training trajectory snapshots instead of curvature.
 
 1. **Collect LoRA snapshots:** after burn-in, periodically store LoRA parameters $\{\theta^{(s)}\}_{s=1}^S$ during continued DPO training.
 
-2. **Fit a SWAG Gaussian approximation:** SWAG maintains running estimates of:
-   - mean: $\bar\theta$
-   - diagonal variance: $\sigma^2_{\text{diag}}$
-   - low-rank subspace (from recent centered snapshots)
-
-   yielding an approximate posterior:
+2. **Fit a SWAG Gaussian approximation:** maintain estimates of mean $\bar\theta$ and covariance $\Sigma_\theta^{\text{SWAG}}$ (diag + low-rank).
 
    $$
-   \theta \sim \mathcal{N}(\bar\theta, \Sigma_\theta^{\text{SWAG}})
-   \quad\text{(diag + low-rank)}.
+   \theta \sim \mathcal{N}(\bar\theta, \Sigma_\theta^{\text{SWAG}}).
    $$
 
-3. **Sample parameters and score utilities:** draw $T$ parameter samples $\theta^{(t)}\sim q_{\text{SWAG}}(\theta)$, then compute:
+3. **Sample parameters and score utilities:** draw $T$ samples $\theta^{(t)}\sim q_{\text{SWAG}}(\theta)$, then compute
 
    $$
    u^{(t)} = u_{\theta^{(t)}}(x,\cdot).
    $$
 
-4. **Estimate $(\mu,\Sigma_u)$ in utility space** from sampled utilities exactly as in MCD:
+4. **Estimate $(\mu,\Sigma_u)$ in utility space** from sampled utilities:
 
    $$
    \mu = \frac{1}{T}\sum_{t=1}^T u^{(t)}, 
@@ -305,7 +300,6 @@ SWAG (Stochastic Weight Averaging–Gaussian) approximates a posterior over para
    $$
 
 **SWAG is Bayesian in parameter space like Laplace, but propagates to utilities by sampling rather than finite-difference probing.**
-
 ---
 
 ##### Using $(\mu,\Sigma_u)$ for query selection
