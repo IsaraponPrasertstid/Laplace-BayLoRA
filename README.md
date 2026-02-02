@@ -14,8 +14,8 @@ Reinforcement Learning from Human Feedback (RLHF) is effective but expensive
 > Can we personalise an LLM to an individual user from only a small number of pairwise preference labels?
 
 Our approach combines:
-	- Bayesian active selection of response pairs: we estimate uncertainty over candidate utilities and query the user on comparisons that are expected to be maximally informative (MCD by default; Laplace and SWAG as alternatives).
-	- Efficient preference learning via DPO while training only LoRA parameters.
+- Bayesian active selection of response pairs: we estimate uncertainty over candidate utilities and query the user on comparisons that are expected to be maximally informative (MCD by default; Laplace and SWAG as alternatives).
+- Efficient preference learning via DPO while training only LoRA parameters.
 
 Across our experiments, MCD provides the strongest results relative to Laplace, SWAG, and a non-Bayesian selection baseline.
 
@@ -25,11 +25,7 @@ Across our experiments, MCD provides the strongest results relative to Laplace, 
 
 We adapt the Bayesian optimisation framework from:
 
-- **Interactive Ranking from Pairwise Comparisons**  
-  TACL 2020 (GPPL)  
-  https://arxiv.org/pdf/1911.10183
-
-to LLMs trained with **Direct Preference Optimisation (DPO)**.
+- [Interactive Ranking from Pairwise Comparisons](https://arxiv.org/pdf/1911.10183) to LLMs trained with **Direct Preference Optimisation (DPO)**.
 
 ### GPPL setting
 - Latent utility function over items
@@ -40,15 +36,11 @@ to LLMs trained with **Direct Preference Optimisation (DPO)**.
 - We replace the Gaussian process in GPPL with a Bayesian LoRA surrogate built on a DPO-trained LLM.
 - We approximate the Bayesian posterior and uncertainty using MCD, Laplace, or SWAG.
 
-
 ---
 
 ## Data
 
-We use a topic-based summarisation dataset (**DUC2004_summarisation_Documents**) from the DUC 2004 benchmark.
-
-[https://duc.nist.gov/duc2004/
-](https://duc.nist.gov/duc2004/)
+We use a topic-based summarisation dataset (**DUC2004_summarisation_Documents**) from [the DUC 2004 benchmark](https://duc.nist.gov/duc2004/).
 
 The dataset contains:
 - 50 topics, each consisting of a cluster of multiple related news articles.
@@ -67,17 +59,17 @@ This mixed pool provides diverse candidate responses for preference-based learni
 
 The reference summaries are not used for training the preference model, but are used for: **Anchor-based evaluation**
 
-The DUC 2004 dataset does **not** provide preference labels. In principle, we could recover a full ranking over candidate summaries by asking an LLM judge to compare every pair, but this quickly becomes computationally infeasible: a full pairwise tournament over \(N\) candidates costs \(\mathcal{O}(N^2)\) judge comparisons (approximately \(N(N-1)/2\)).
+The DUC 2004 dataset does **not** provide preference labels. In principle, we could recover a full ranking over candidate summaries by asking an LLM judge to compare every pair, but this quickly becomes computationally infeasible: a full pairwise tournament over N candidates costs O(N^2) judge comparisons (approximately N(N−1)/2).
 
-To make evaluation posible, we use an **anchor-based evaluation** protocol:
-
-- We select a small set of **anchors** (we use \(M=32\)).
+To make evaluation possible, we use an **anchor-based evaluation** protocol:
+- We select a small set of **anchors** (we use M = 32).
 - For each candidate summary, we estimate a relevance/quality score as its **win-rate against the anchors**.
-- This reduces evaluation cost from \(\mathcal{O}(N^2)\) to \(\mathcal{O}(NM)\).  
-  For example, with \(N=1000\) candidates and \(M=32\) anchors:
-  - Full tournament: \(\approx 1000 \cdot 999 / 2 \approx 5\times 10^5\) comparisons
-  - Anchor-based: \(1000 \cdot 32 = 3.2\times 10^4\) comparisons (over an order of magnitude cheaper)
-
+- This reduces evaluation cost from O(N^2) to O(NM).
+  
+For example, with N = 1000 candidates and M = 32 anchors:
+  - Full tournament: ≈ 1000 · 999 / 2 ≈ 5×10^5 comparisons
+  - Anchor-based: 1000 · 32 = 3.2×10^4 comparisons (over an order of magnitude cheaper)
+    
 This approach avoids judging all candidate pairs while still producing a meaningful relative ranking signal.
 
 ### How we choose anchors (why references help)
@@ -126,12 +118,7 @@ The judge is prompted to compare **Summary A vs Summary B** for the same source 
 
 We reuse the GPPL implementation from: https://github.com/UKPLab/tacl2020-interactive-ranking
 
-Keys:
-- Linear kernel over SBERT embeddings
-- Stochastic variational inference (SVI)
-- Expected Improvement (EI) for active query selection
-
-GPPL serves as a strong non-LLM baseline.
+This serves as a strong non-LLM baseline.
 
 ---
 
@@ -151,14 +138,14 @@ We support multiple Bayesian approximations over the LoRA-adapted policy. In our
 1. Train a MAP LoRA policy using DPO
 2. Enable dropout at inference time and draw multiple stochastic forward passes
 3. Estimate a posterior over candidate utilities from Monte Carlo samples
-4. Select the next comparison using Bayesian acquisition functions (e.g., uncertainty-based querying)
+4. Select the next comparison using Bayesian acquisition functions
 
 **Laplace**
 1. Train a MAP LoRA policy using DPO
 2. Estimate curvature over LoRA parameters using **K-FAC**
 3. Construct a **Laplace posterior** over LoRA parameters (diagonal or diagonal + low-rank, depending on configuration)
 4. Propagate parameter uncertainty to candidate utility predictions via linearization
-5. Select queries using Bayesian acquisition functions (e.g., EI / uncertainty-aware sampling)
+5. Select queries using Bayesian acquisition functions
 
 **SWAG**
 1. Train the LoRA policy using DPO while periodically collecting LoRA snapshots
@@ -167,20 +154,19 @@ We support multiple Bayesian approximations over the LoRA-adapted policy. In our
 4. Select queries using Bayesian acquisition functions
 
 --- 
-#### Propagating uncertainty into utility space (MCD vs. Laplace/KFAC vs. SWAG)
+
+#### Propagating uncertainty into utility space (MCD vs. Laplace vs. SWAG)
 
 In GPPL, the Bayesian model is defined **directly over latent utilities**, so the posterior is already aligned with the active-learning objective (ranking items by utility).
 
 In Bayesian DPO, the Bayesian object depends on the approximation we use (dropout masks, curvature, or snapshots).  
-Regardless of the approximation, **active learning needs uncertainty over pairwise utility differences**
+Regardless of the approximation, **active learning needs uncertainty over pairwise utility differences**:
 
 $$
-\Delta u(x; y_i, y_j) \;=\; u(x,y_i) - u(x,y_j),
+\Delta u(x; y_i, y_j) \=\ u(x,y_i) - u(x,y_j)
 $$
 
 because acquisition functions choose the next query based on how uncertain we are about which candidate is better.
-
-Below we describe how each Bayesian approximation yields a posterior over utilities.
 
 ---
 
@@ -189,67 +175,53 @@ Below we describe how each Bayesian approximation yields a posterior over utilit
 We use the standard DPO-style implicit utility (log-likelihood ratio vs. a frozen reference), computed over response tokens:
 
 $$
-u_\theta(x,y) \;=\; \beta \Big(\log p_\theta(y\mid x) - \log p_{\text{ref}}(y\mid x)\Big).
+u_\theta(x,y) \=\ \beta\Big(\log p_\theta(y\mid x) - \log p_{\text{ref}}(y\mid x)\Big)
 $$
 
-We score a pool of candidates $y_1,\dots,y_N$ for a fixed input $x$, producing a **utility vector**
+For a fixed input $x$ and a pool of candidates $y_1,\dots,y_N$, we form the **utility vector**:
 
 $$
-u \;=\; [u(x,y_1),\dots,u(x,y_N)]^\top.
+u \=\ \big[u(x,y_1),\dots,u(x,y_N)\big]^{\mathsf T}
 $$
 
-Active learning then relies on (an approximation to) a **utility posterior**, commonly summarized by $(\mu,\Sigma_u)$, where $\mu \approx \mathbb{E}[u]$ and $\Sigma_u \approx \mathrm{Cov}(u)$.
+Active learning relies on (an approximation to) a **utility posterior**, commonly summarized by $(\mu,\Sigma_u)$,
+where $\mu \approx \mathbb{E}[u]$ and $\Sigma_u \approx \mathrm{Cov}(u)$
 
 ---
+
 ##### MC Dropout (MCD): posterior in utility space via stochastic forward passes
 
-MCD does **not** construct an explicit Gaussian posterior over parameters. Instead, it induces an implicit posterior by
-enabling dropout at inference time and running multiple stochastic forward passes.
+MCD does **not** construct an explicit Gaussian posterior over parameters. Instead, it induces an implicit posterior by enabling dropout at inference time and running multiple stochastic forward passes.
 
 We treat each stochastic forward pass as a sample of the **utility vector** over the candidate pool.
 
-<ol>
-  <li>
-    <b>Sample utility vectors</b> (dropout ON). For <i>t</i> = 1,…,T, compute utilities for all candidates and form
-    a vector sample:
-    <p>
-    $$
-    u^{(t)} \;=\; \big[u_{\theta,m_t}(x,y_1), \dots, u_{\theta,m_t}(x,y_N)\big]^\top,
-    $$
-    where \(m_t\) is a sampled dropout mask.
-    </p>
-  </li>
+1. **Sample utility vectors (dropout ON).** For $t=1,\dots,T$, compute utilities for all candidates and form:
 
-  <li>
-    <b>Estimate the utility mean</b>:
-    <p>
-    $$
-    \mu \;=\; \frac{1}{T}\sum_{t=1}^{T} u^{(t)}.
-    $$
-    </p>
-  </li>
+$$
+u^{(t)} \=\ \big[u_{\theta,m_t}(x,y_1), \dots, u_{\theta,m_t}(x,y_N)\big]^{\mathsf T},
+$$
 
-  <li>
-    <b>Estimate the utility covariance</b> (sample covariance):
-    <p>
-    $$
-    \Sigma_u \;\approx\; \frac{1}{T-1}\sum_{t=1}^{T}\big(u^{(t)}-\mu\big)\big(u^{(t)}-\mu\big)^\top.
-    $$
-    </p>
-  </li>
+where $m_t$ is a sampled dropout mask.
 
-  <li>
-    <b>Pairwise uncertainty</b> for candidates \(i,j\) follows from \((\mu,\Sigma_u)\). The utility gap is
-    \(\Delta u_{ij} = u_i - u_j\), and its variance is:
-    <p>
-    $$
-    \mathrm{Var}(\Delta u_{ij})
-    \;=\;
-    \Sigma_{u,ii} + \Sigma_{u,jj} - 2\Sigma_{u,ij}.
-    $$
-    </p>
-  </li>
-</ol>
+2. **Estimate the utility mean:**
+
+$$
+\mu \=\ \frac{1}{T}\sum_{t=1}^{T} u^{(t)}
+$$
+
+3. **Estimate the utility covariance (sample covariance):**
+
+$$
+\Sigma_u \\approx\ \frac{1}{T-1}\sum_{t=1}^{T}\big(u^{(t)}-\mu\big)\big(u^{(t)}-\mu\big)^{\mathsf T}
+$$
+
+4. **Pairwise uncertainty.** For candidates $i,j$, the utility gap is $\Delta u_{ij}=u_i-u_j$ and:
+
+$$
+\mathrm{Var}(\Delta u_{ij})
+\=\
+\Sigma_{u,ii} + \Sigma_{u,jj} - 2\Sigma_{u,ij}
+$$
 
 **MCD gives uncertainty in utility space "for free" because we sample utilities directly.**
 
@@ -260,69 +232,70 @@ We treat each stochastic forward pass as a sample of the **utility vector** over
 Laplace/KFAC constructs an explicit approximate posterior over LoRA parameters:
 
 $$
-\theta \sim \mathcal{N}(\theta_{\text{MAP}}, \Sigma_\theta).
+\theta \sim \mathcal{N}\\big(\theta_{\text{MAP}}, \Sigma_\theta\big)
 $$
 
 To align this with ranking, we propagate parameter uncertainty into utility space via a local linearization:
 
 $$
 u_\theta \approx u_{\theta_{\text{MAP}}} + J(\theta-\theta_{\text{MAP}}),
-\quad\Rightarrow\quad
-\Sigma_u \approx J\Sigma_\theta J^\top,
+\qquad
+\Sigma_u \approx J\Sigma_\theta J^{\mathsf T},
 $$
 
-where $J = \partial u/\partial\theta$.
+where $J=\partial u/\partial\theta$.
 
 Since computing the full Jacobian $J$ is infeasible for LLMs, we estimate utility uncertainty using **directional finite differences**:
 
 1. **Mean utilities (MAP):** $\mu = u_{\theta_{\text{MAP}}}(x,\cdot)$
 
-2. **Probe high-variance directions:** for selected parameter directions $d_k$ (e.g., low-rank directions from KFAC),
+2. **Probe high-variance directions:** for selected parameter directions $d_k$,
 
-   $$
-   z_k \;\approx\; \frac{u(\theta+\epsilon d_k)-u(\theta-\epsilon d_k)}{2\epsilon}.
-   $$
+$$
+z_k \\approx\ \frac{u(\theta+\epsilon d_k)-u(\theta-\epsilon d_k)}{2\epsilon}
+$$
 
 3. **Accumulate covariance in utility space:**
 
-   $$
-   \Sigma_u \;\approx\; \sum_k \mathrm{Var}(d_k)\, z_k z_k^\top \;+\; \frac{1}{M}\sum_{m=1}^M z_m z_m^\top,
-   $$
-
-   where the second term can be used to approximate remaining diagonal/residual uncertainty.
+$$
+\Sigma_u \\approx\
+\sum_k \mathrm{Var}(d_k)\, z_k z_k^{\mathsf T}
+\+\
+\frac{1}{M}\sum_{m=1}^{M} z_m z_m^{\mathsf T}
+$$
 
 **Laplace starts in parameter space, so we must explicitly propagate uncertainty into utilities.**
 
 ---
 
-
 ##### SWAG: parameter posterior from snapshots $\Rightarrow$ utility posterior via sampling
 
 SWAG (Stochastic Weight Averaging–Gaussian) approximates a posterior over parameters using training trajectory snapshots instead of curvature.
 
-1. **Collect LoRA snapshots:** after burn-in, periodically store LoRA parameters $\{\theta^{(s)}\}_{s=1}^S$ during continued DPO training.
+1. **Collect LoRA snapshots:** after burn-in, periodically store LoRA parameters $\{\theta^{(s)}\}_{s=1}^{S}$.
 
-2. **Fit a SWAG Gaussian approximation:** maintain estimates of mean $\bar\theta$ and covariance $\Sigma_\theta^{\text{SWAG}}$ (diag + low-rank).
+2. **Fit a SWAG Gaussian approximation** (diag + low-rank):
 
-   $$
-   \theta \sim \mathcal{N}(\bar\theta, \Sigma_\theta^{\text{SWAG}}).
-   $$
+$$
+\theta \sim \mathcal{N}\\big(\bar\theta, \Sigma_\theta^{\text{SWAG}}\big)
+$$
 
-3. **Sample parameters and score utilities:** draw $T$ samples $\theta^{(t)}\sim q_{\text{SWAG}}(\theta)$, then compute
+3. **Sample parameters and score utilities:** draw $T$ samples $\theta^{(t)}\sim q_{\text{SWAG}}(\theta)$ and compute:
 
-   $$
-   u^{(t)} = u_{\theta^{(t)}}(x,\cdot).
-   $$
+$$
+u^{(t)} \=\ u_{\theta^{(t)}}(x,\cdot)
+$$
 
 4. **Estimate $(\mu,\Sigma_u)$ in utility space** from sampled utilities:
 
-   $$
-   \mu = \frac{1}{T}\sum_{t=1}^T u^{(t)}, 
-   \qquad
-   \Sigma_u \approx \mathrm{Cov}(\{u^{(t)}\}_{t=1}^T).
-   $$
+$$
+\mu \=\ \frac{1}{T}\sum_{t=1}^{T} u^{(t)},
+\qquad
+\Sigma_u \\approx\ \mathrm{Cov}\big(\{u^{(t)}\}_{t=1}^{T}\big)
+$$
 
 **SWAG is Bayesian in parameter space like Laplace, but propagates to utilities by sampling rather than finite-difference probing.**
+
 ---
 
 ##### Using $(\mu,\Sigma_u)$ for query selection
