@@ -324,5 +324,6 @@ At each round, we:
 
 ## Evaluation
 - NDCG@20
+- ![Bayesian DPO overview](compared(aq).png)
   
 
