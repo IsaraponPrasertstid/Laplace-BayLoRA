@@ -571,42 +571,63 @@ class GPClassifierVB(object):
             logging.error('GPClassifierVB: Invalid covariance type %s' % cov_type)
 
     # Input data handling ---------------------------------------------------------------------------------------------
-
     def _count_observations(self, obs_coords, n_obs, poscounts, totals):
-        obs_coords = np.array(obs_coords)
+        obs_coords = np.asarray(obs_coords)
+
         if obs_coords.shape[0] == self.ninput_features and obs_coords.shape[1] != self.ninput_features:
-            if obs_coords.ndim == 3 and obs_coords.shape[2] == 1:
-                obs_coords = obs_coords.reshape((obs_coords.shape[0], obs_coords.shape[1]))
             obs_coords = obs_coords.T
 
         if self.features is not None:
-            self.obs_uidxs = np.arange(self.features.shape[0])
-            # poscounts = poscounts.astype(int)
-            totals = totals.astype(int)
+            self.obs_uidxs = np.arange(self.features.shape[0], dtype=np.int64)
             self.obs_coords = self.features
-            return poscounts, totals
+            return poscounts.astype(np.int64), totals.astype(np.int64)
 
-        # duplicate locations should be merged and the number of duplicates counted
-        ravelled_coords = coord_arr_to_1d(obs_coords)
-        uravelled_coords, origidxs, idxs = np.unique(ravelled_coords, return_index=True, return_inverse=True)
+        obs_coords = np.asarray(obs_coords, dtype=np.float64)
+        obs_coords = np.round(obs_coords, decimals=6)
+        obs_coords_int = np.floor(obs_coords * 1e6).astype(np.int64)
 
-        grid_obs_counts = coo_matrix((totals, (idxs, np.ones(n_obs)))).toarray()
-        grid_obs_pos_counts = coo_matrix((poscounts, (idxs, np.ones(n_obs)))).toarray()
-        nonzero_idxs = grid_obs_counts.nonzero()[0]  # ravelled coordinates with duplicates removed
-        uravelled_coords_nonzero = uravelled_coords[nonzero_idxs]
-        origidxs_nonzero = origidxs[nonzero_idxs]
-        # preserve the original order
-        sortedidxs = np.argsort(origidxs_nonzero)
-        uravelled_coords_nonzero_sorted = uravelled_coords_nonzero[sortedidxs]
-        self.obs_coords = coord_arr_from_1d(uravelled_coords_nonzero_sorted, obs_coords.dtype,
-                                            [nonzero_idxs.size, self.ninput_features])
-        self.obs_uidxs = origidxs_nonzero[
-            sortedidxs]  # records the mapping from the input data to the obs_coords object
+        ravelled = coord_arr_to_1d(obs_coords_int)
+        uravelled, origidxs, idxs = np.unique(
+            ravelled,
+            return_index=True,
+            return_inverse=True
+        )
 
-        pos_counts = grid_obs_pos_counts[nonzero_idxs, 1][sortedidxs]
-        totals = grid_obs_counts[nonzero_idxs, 1][sortedidxs]
+        idxs = idxs.astype(np.int64)
+        origidxs = origidxs.astype(np.int64)
 
-        return pos_counts, totals
+        poscounts = np.asarray(poscounts, dtype=np.int64)
+        totals = np.asarray(totals, dtype=np.int64)
+
+        n_unique = int(idxs.max()) + 1
+        col0 = np.zeros(n_obs, dtype=np.int64)
+
+        grid_obs_counts = coo_matrix(
+            (totals, (idxs, col0)),
+            shape=(n_unique, 1),
+            dtype=np.int64
+        ).toarray()
+
+        grid_obs_pos_counts = coo_matrix(
+            (poscounts, (idxs, col0)),
+            shape=(n_unique, 1),
+            dtype=np.int64
+        ).toarray()
+
+        nonzero = grid_obs_counts[:, 0] > 0
+
+        self.obs_coords = coord_arr_from_1d(
+            uravelled[nonzero],
+            obs_coords_int.dtype,
+            [nonzero.sum(), self.ninput_features]
+        )
+
+        self.obs_uidxs = origidxs[nonzero]
+
+        return (
+            grid_obs_pos_counts[nonzero, 0],
+            grid_obs_counts[nonzero, 0],
+        )
 
     def _process_observations(self, obs_coords, obs_values, totals=None):
         if obs_values is None:
@@ -1124,8 +1145,8 @@ class GPClassifierVB(object):
 
     # Prediction methods ---------------------------------------------------------------------------------------------
 
-    def predict(self, out_feats=None, out_idxs=None, K_star=None, K_starstar=None, variance_method='rough',
-                expectedlog=False, mu0_output=None, reuse_output_kernel=False):
+    def predict(self, out_feats=None, out_idxs=None, K_star=None, K_starstar=None, variance_method='rough', 
+                expectedlog=False, mu0_output=None, mu0_out=None, reuse_output_kernel=False):
         '''
         Evaluate the function posterior mean and variance at the given co-ordinates using the 2D squared exponential
         kernel
@@ -1138,7 +1159,17 @@ class GPClassifierVB(object):
         do not change between calls.
 
         '''
-        self.predict_f(out_feats, out_idxs, K_star, K_starstar, mu0_output, reuse_output_kernel)
+        if mu0_output is None and mu0_out is not None:
+            mu0_output = mu0_out
+    
+        self.predict_f(
+            out_feats=out_feats,
+            out_idxs=out_idxs,
+            K_star=K_star,
+            K_starstar=K_starstar,
+            mu0_output=mu0_output,
+            reuse_output_kernel=reuse_output_kernel,
+        )
 
         if variance_method == 'sample' or expectedlog:
             if variance_method == 'rough':
@@ -1173,8 +1204,21 @@ class GPClassifierVB(object):
     def _get_training_feats(self):
         return self.obs_coords
 
-    def predict_f(self, out_feats=None, out_idxs=None, K_star=None, K_starstar=None, mu0_output=None,
-                  reuse_output_kernel=False, full_cov=False):
+    def predict_f(
+        self,
+        out_feats=None,
+        out_idxs=None,
+        K_star=None,
+        K_starstar=None,
+        mu0_output=None,
+        mu0_out=None,            
+        reuse_output_kernel=False,
+        full_cov=False,
+    ):
+        # --- alias handling ---
+        if mu0_output is None and mu0_out is not None:
+            mu0_output = mu0_out
+
         # Establish the output covariance matrices
         if K_star is not None and K_starstar is not None:
             # use the matrices passed in directly
