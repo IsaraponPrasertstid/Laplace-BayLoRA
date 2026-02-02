@@ -167,16 +167,17 @@ We support multiple Bayesian approximations over the LoRA-adapted policy. In our
 4. Select queries using Bayesian acquisition functions
 
 --- 
-
 #### Propagating uncertainty into utility space (MCD vs. Laplace/KFAC vs. SWAG)
 
 In GPPL, the Bayesian model is defined **directly over latent utilities**, so the posterior is already aligned with the active-learning objective (ranking items by utility).
 
-In Bayesian DPO, the Bayesian object depends on the approximation we use (dropout masks, curvature, or snapshots).
+In Bayesian DPO, the Bayesian object depends on the approximation we use (dropout masks, curvature, or snapshots).  
 Regardless of the approximation, **active learning needs uncertainty over pairwise utility differences**
-\[
+
+$$
 \Delta u(x; y_i, y_j) \;=\; u(x,y_i) - u(x,y_j),
-\]
+$$
+
 because acquisition functions choose the next query based on how uncertain we are about which candidate is better.
 
 Below we describe how each Bayesian approximation yields a posterior over utilities.
@@ -186,132 +187,137 @@ Below we describe how each Bayesian approximation yields a posterior over utilit
 ##### Utility definition (DPO)
 
 We use the standard DPO-style implicit utility (log-likelihood ratio vs. a frozen reference), computed over response tokens:
-\[
+
+$$
 u_\theta(x,y) \;=\; \beta \Big(\log p_\theta(y\mid x) - \log p_{\text{ref}}(y\mid x)\Big).
-\]
+$$
 
-We score a pool of candidates \(y_1,\dots,y_N\) for a fixed input \(x\), producing a **utility vector**
-\[
+We score a pool of candidates $y_1,\dots,y_N$ for a fixed input $x$, producing a **utility vector**
+
+$$
 u \;=\; [u(x,y_1),\dots,u(x,y_N)]^\top.
-\]
+$$
 
-Active learning then relies on (an approximation to) a **utility posterior**, commonly summarized by
-\((\mu,\Sigma_u)\), where \(\mu \approx \mathbb{E}[u]\) and \(\Sigma_u \approx \mathrm{Cov}(u)\).
+Active learning then relies on (an approximation to) a **utility posterior**, commonly summarized by $(\mu,\Sigma_u)$, where $\mu \approx \mathbb{E}[u]$ and $\Sigma_u \approx \mathrm{Cov}(u)$.
 
 ---
 
 ##### MC Dropout (MCD): posterior in utility space via stochastic forward passes
 
-MCD does **not** construct an explicit Gaussian posterior over parameters. Instead, it induces an implicit posterior by
-enabling dropout at inference time and sampling multiple stochastic forward passes.
+MCD does **not** construct an explicit Gaussian posterior over parameters. Instead, it induces an implicit posterior by enabling dropout at inference time and sampling multiple stochastic forward passes.
 
-1. **Sample utilities** (dropout ON): for \(t=1,\dots,T\),
-   \[
+1. **Sample utilities** (dropout ON): for $t=1,\dots,T$,
+
+   $$
    u^{(t)}(x,y) \;=\; u_{\theta,m_t}(x,y),
-   \]
-   where \(m_t\) is a sampled dropout mask.
+   $$
+
+   where $m_t$ is a sampled dropout mask.
 
 2. **Estimate utility mean and covariance** from the samples:
-   \[
+
+   $$
    \mu \;=\; \frac{1}{T}\sum_{t=1}^T u^{(t)}, 
    \qquad
    \Sigma_u \;\approx\; \mathrm{Cov}\big(\{u^{(t)}\}_{t=1}^T\big).
-   \]
+   $$
 
-3. **Pairwise uncertainty** can be derived either from samples directly (by sampling \(\Delta u^{(t)}\)) or from
-   \((\mu,\Sigma_u)\) via:
-   \[
+3. **Pairwise uncertainty** can be derived either from samples directly (by sampling $\Delta u^{(t)}$) or from $(\mu,\Sigma_u)$ via:
+
+   $$
    \mathrm{Var}(\Delta u_{ij}) \;=\; \Sigma_{u,ii} + \Sigma_{u,jj} - 2\Sigma_{u,ij}.
-   \]
+   $$
 
-**MCD gives uncertainty in *utility space* "for free" because we sample utilities directly.**
+**MCD gives uncertainty in utility space “for free” because we sample utilities directly.**
 
 ---
 
-##### Laplace / KFAC: parameter posterior => utility posterior via linearization/probing
+##### Laplace / KFAC: parameter posterior $\Rightarrow$ utility posterior via linearization/probing
 
 Laplace/KFAC constructs an explicit approximate posterior over LoRA parameters:
-\[
+
+$$
 \theta \sim \mathcal{N}(\theta_{\text{MAP}}, \Sigma_\theta).
-\]
+$$
 
 To align this with ranking, we propagate parameter uncertainty into utility space via a local linearization:
-\[
+
+$$
 u_\theta \approx u_{\theta_{\text{MAP}}} + J(\theta-\theta_{\text{MAP}}),
 \quad\Rightarrow\quad
 \Sigma_u \approx J\Sigma_\theta J^\top,
-\]
-where \(J = \partial u/\partial\theta\).
+$$
 
-Since computing the full Jacobian \(J\) is infeasible for LLMs, we estimate utility uncertainty using
-**directional finite differences**:
+where $J = \partial u/\partial\theta$.
 
-1. **Mean utilities (MAP):** \(\mu = u_{\theta_{\text{MAP}}}(x,\cdot)\)
+Since computing the full Jacobian $J$ is infeasible for LLMs, we estimate utility uncertainty using **directional finite differences**:
 
-2. **Probe high-variance directions:** for selected parameter directions \(d_k\) (e.g., low-rank directions from KFAC),
-   \[
+1. **Mean utilities (MAP):** $\mu = u_{\theta_{\text{MAP}}}(x,\cdot)$
+
+2. **Probe high-variance directions:** for selected parameter directions $d_k$ (e.g., low-rank directions from KFAC),
+
+   $$
    z_k \;\approx\; \frac{u(\theta+\epsilon d_k)-u(\theta-\epsilon d_k)}{2\epsilon}.
-   \]
+   $$
 
 3. **Accumulate covariance in utility space:**
-   \[
+
+   $$
    \Sigma_u \;\approx\; \sum_k \mathrm{Var}(d_k)\, z_k z_k^\top \;+\; \frac{1}{M}\sum_{m=1}^M z_m z_m^\top,
-   \]
+   $$
+
    where the second term can be used to approximate remaining diagonal/residual uncertainty.
 
 **Laplace starts in parameter space, so we must explicitly propagate uncertainty into utilities.**
 
 ---
 
-##### SWAG: parameter posterior from snapshots => utility posterior via sampling
+##### SWAG: parameter posterior from snapshots $\Rightarrow$ utility posterior via sampling
 
-SWAG (Stochastic Weight Averaging–Gaussian) approximates a posterior over parameters using **training trajectory snapshots**
-instead of curvature.
+SWAG (Stochastic Weight Averaging–Gaussian) approximates a posterior over parameters using **training trajectory snapshots** instead of curvature.
 
-1. **Collect LoRA snapshots:** after burn-in, periodically store LoRA parameters
-   \(\{\theta^{(s)}\}_{s=1}^S\) during continued DPO training.
+1. **Collect LoRA snapshots:** after burn-in, periodically store LoRA parameters $\{\theta^{(s)}\}_{s=1}^S$ during continued DPO training.
 
 2. **Fit a SWAG Gaussian approximation:** SWAG maintains running estimates of:
-   - mean: \(\bar\theta\)
-   - diagonal variance: \(\sigma^2_{\text{diag}}\)
+   - mean: $\bar\theta$
+   - diagonal variance: $\sigma^2_{\text{diag}}$
    - low-rank subspace (from recent centered snapshots)
 
    yielding an approximate posterior:
-   \[
+
+   $$
    \theta \sim \mathcal{N}(\bar\theta, \Sigma_\theta^{\text{SWAG}})
    \quad\text{(diag + low-rank)}.
-   \]
+   $$
 
-3. **Sample parameters and score utilities:** draw \(T\) parameter samples \(\theta^{(t)}\sim q_{\text{SWAG}}(\theta)\),
-   then compute:
-   \[
+3. **Sample parameters and score utilities:** draw $T$ parameter samples $\theta^{(t)}\sim q_{\text{SWAG}}(\theta)$, then compute:
+
+   $$
    u^{(t)} = u_{\theta^{(t)}}(x,\cdot).
-   \]
+   $$
 
-4. **Estimate \((\mu,\Sigma_u)\) in utility space** from sampled utilities exactly as in MCD:
-   \[
+4. **Estimate $(\mu,\Sigma_u)$ in utility space** from sampled utilities exactly as in MCD:
+
+   $$
    \mu = \frac{1}{T}\sum_{t=1}^T u^{(t)}, 
    \qquad
    \Sigma_u \approx \mathrm{Cov}(\{u^{(t)}\}_{t=1}^T).
-   \]
+   $$
 
-
-**SWAG is "Bayesian in parameter space" like Laplace, but propagates to utilities by *sampling* rather than
-finite-difference probing.**
+**SWAG is Bayesian in parameter space like Laplace, but propagates to utilities by sampling rather than finite-difference probing.**
 
 ---
 
-##### Using \((\mu,\Sigma_u)\) for query selection
+##### Using $(\mu,\Sigma_u)$ for query selection
 
-Once we have \((\mu,\Sigma_u)\), we can compute uncertainty over each pairwise gap \(\Delta u_{ij}\) and apply Bayesian
-acquisition functions (e.g., uncertainty sampling, information gain proxies, EI-style criteria) to choose the next
-pair \((i,j)\) for the user/judge to compare.
+Once we have $(\mu,\Sigma_u)$, we can compute uncertainty over each pairwise gap $\Delta u_{ij}$ and apply Bayesian acquisition functions (e.g., uncertainty sampling, information-gain proxies, EI-style criteria) to choose the next pair $(i,j)$ for the user/judge to compare.
 
+--- 
 # Acquisition function 
 Similar to Simpson et al. 2020 ([https://arxiv.org/pdf/1911.10183](https://arxiv.org/pdf/1911.10183))
 
-
-#### Active learning loop (common to all Bayesian modes)
+--- 
+# Active learning loop (common to all Bayesian modes)
 
 At each round, we:
 1. Score candidates for the current topic using the current policy
@@ -321,8 +327,8 @@ At each round, we:
 5. Update the LoRA policy with DPO on the accumulated preference pairs
 
 
-
-## Evaluation
+--- 
+# Evaluation
 - NDCG@20
 
 <p align="center">
