@@ -104,7 +104,7 @@ We generate pairwise preference labels using:
 
 ### Prompting protocol
   
-We adapt the judge prompt format from: Muldrew et al. (2024):  [https://arxiv.org/pdf/2402.08114](https://arxiv.org/pdf/2402.08114)
+We adapt the judge prompt format from: Muldrew et al. (2024):  [Active Preference Learning for Large Language Models](https://arxiv.org/pdf/2402.08114)
 
 The judge is prompted to compare **Summary A vs Summary B** for the same source post and output a structured decision in the form:
 
