@@ -227,9 +227,9 @@ $$
 
 ---
 
-##### Laplace / KFAC: parameter posterior $\Rightarrow$ utility posterior via linearization/probing
+##### Laplace: parameter posterior $\Rightarrow$ utility posterior via linearization/probing
 
-Laplace/KFAC constructs an explicit approximate posterior over LoRA parameters:
+Laplace constructs an explicit approximate posterior over LoRA parameters:
 
 $$
 \theta \sim \mathcal{N}\\big(\theta_{\text{MAP}}, \Sigma_\theta\big)
