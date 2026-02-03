@@ -155,7 +155,7 @@ We support multiple Bayesian approximations over the LoRA-adapted policy. In our
 
 --- 
 
-#### Propagating uncertainty into utility space (MCD vs. Laplace vs. SWAG)
+# Propagating uncertainty into utility space (MCD vs. Laplace vs. SWAG)
 
 In GPPL, the Bayesian model is defined **directly over latent utilities**, so the posterior is already aligned with the active-learning objective (ranking items by utility).
 
@@ -168,9 +168,8 @@ $$
 
 because acquisition functions choose the next query based on how uncertain we are about which candidate is better.
 
----
 
-##### Utility definition (DPO)
+## Utility definition (DPO)
 
 We use the standard DPO-style implicit utility (log-likelihood ratio vs. a frozen reference), computed over response tokens:
 
@@ -187,9 +186,8 @@ $$
 Active learning relies on (an approximation to) a **utility posterior**, commonly summarized by $(\mu,\Sigma_u)$,
 where $\mu \approx \mathbb{E}[u]$ and $\Sigma_u \approx \mathrm{Cov}(u)$
 
----
 
-##### MC Dropout (MCD): posterior in utility space via stochastic forward passes
+## MC Dropout (MCD): posterior in utility space via stochastic forward passes
 
 MCD does **not** construct an explicit Gaussian posterior over parameters. Instead, it induces an implicit posterior by enabling dropout at inference time and running multiple stochastic forward passes.
 
@@ -225,9 +223,7 @@ $$
 
 **MCD gives uncertainty in utility space "for free" because we sample utilities directly.**
 
----
-
-##### Laplace: parameter posterior $\Rightarrow$ utility posterior via linearization/probing
+## Laplace: parameter posterior $\Rightarrow$ utility posterior via linearization/probing
 
 Laplace constructs an explicit approximate posterior over LoRA parameters:
 
@@ -266,9 +262,7 @@ $$
 
 **Laplace starts in parameter space, so we must explicitly propagate uncertainty into utilities.**
 
----
-
-##### SWAG: parameter posterior from snapshots $\Rightarrow$ utility posterior via sampling
+## SWAG: parameter posterior from snapshots $\Rightarrow$ utility posterior via sampling
 
 SWAG (Stochastic Weight Averaging–Gaussian) approximates a posterior over parameters using training trajectory snapshots instead of curvature.
 
