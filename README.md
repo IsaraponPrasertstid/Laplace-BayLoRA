@@ -114,9 +114,9 @@ The judge is prompted to compare **Summary A vs Summary B** for the same source 
   
 ## Models
 
-### Baseline: GPPL (TACL 2020) 
+### Baseline: GPPL (Simpson et al., 2020) 
 
-We reuse the GPPL implementation from: https://github.com/UKPLab/tacl2020-interactive-ranking
+We reuse the GPPL implementation from: [Simpson et al. (2020)](https://github.com/UKPLab/tacl2020-interactive-ranking)
 
 This serves as a strong non-LLM baseline.
 
@@ -193,7 +193,7 @@ MCD does **not** construct an explicit Gaussian posterior over parameters. Inste
 
 We treat each stochastic forward pass as a sample of the **utility vector** over the candidate pool.
 
-1. **Sample utility vectors (dropout ON).** For $t=1,\dots,T$, compute utilities for all candidates and form:
+1. **Sample utility vectors (dropout).** For $t=1,\dots,T$, compute utilities for all candidates and form:
 
 $$
 u^{(t)} \=\ \big[u_{\theta,m_t}(x,y_1), \dots, u_{\theta,m_t}(x,y_N)\big]^{\mathsf T},
@@ -303,7 +303,7 @@ Similar to Simpson et al. 2020 ([https://arxiv.org/pdf/1911.10183](https://arxiv
 --- 
 # Active learning loop (common to all Bayesian modes)
 
-At each round, we:
+At each round, we do these
 1. Score candidates for the current topic using the current policy
 2. Use the chosen Bayesian approximation to estimate uncertainty over utilities
 3. Select an informative pair of candidates via an acquisition function
