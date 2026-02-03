@@ -126,7 +126,7 @@ This serves as a strong non-LLM baseline.
 
 We replace the GP preference model (as used in GPPL-style methods) with a **DPO-trained, LoRA-adapted LLM** that acts as the utility surrogate:
 
-- **Base model:** a Qwen/Qwen2.5-0.5B causal LLM ([https://huggingface.co/Qwen/Qwen2.5-0.5B](https://huggingface.co/Qwen/Qwen2.5-0.5B))
+- **Base model:** a `Qwen/Qwen2.5-0.5B` causal LLM ([https://huggingface.co/Qwen/Qwen2.5-0.5B](https://huggingface.co/Qwen/Qwen2.5-0.5B))
 - **Adaptation:** LoRA (trainable adapters; base weights frozen)
 - **Preference objective:** Direct Preference Optimisation (DPO)
 
