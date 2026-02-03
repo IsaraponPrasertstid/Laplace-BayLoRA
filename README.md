@@ -223,7 +223,7 @@ $$
 
 **MCD gives uncertainty in utility space "for free" because we sample utilities directly.**
 
-## Laplace: parameter posterior $\Rightarrow$ utility posterior via linearization/probing
+## Laplace: parameter posterior: utility posterior via linearisation/probing
 
 Laplace constructs an explicit approximate posterior over LoRA parameters:
 
@@ -262,7 +262,7 @@ $$
 
 **Laplace starts in parameter space, so we must explicitly propagate uncertainty into utilities.**
 
-## SWAG: parameter posterior from snapshots $\Rightarrow$ utility posterior via sampling
+## SWAG: parameter posterior from snapshots: utility posterior via sampling
 
 SWAG (Stochastic Weight Averaging–Gaussian) approximates a posterior over parameters using training trajectory snapshots instead of curvature.
 
