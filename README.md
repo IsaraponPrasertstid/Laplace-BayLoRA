@@ -2,7 +2,7 @@
 
 This repository implements **Bayesian DPO**, a method for personalising large language models (LLMs) using only a small number of human preference labels.
 
-We adapt a Bayesian optimisation framework for interactive ranking from pairwise comparisons to **DPO-trained LLMs**, replacing Gaussian-process preference models with Bayesian LoRA uncertainty approximations. We evaluate three **Bayesian approximations** **(MC Dropout (MCD), Laplace, and SWAG)** and compare them against a non-Bayesian baseline. Empirically, MCD achieves the best performance in our experiments.
+We adapt a Bayesian optimisation framework for [Interactive Text Ranking with Bayesian Optimisation](https://arxiv.org/pdf/1911.10183) to **DPO-trained LLMs**, replacing Gaussian-process preference models with Bayesian LoRA uncertainty approximations. We evaluate three **Bayesian approximations** **(MC Dropout (MCD), Laplace, and SWAG)** and compare them against a non-Bayesian baseline. Empirically, MCD achieves the best performance in our experiments.
 
 ---
 
@@ -25,7 +25,7 @@ Across our experiments, MCD provides the strongest results relative to Laplace, 
 
 We adapt the Bayesian optimisation framework from:
 
-- [Interactive Ranking from Pairwise Comparisons](https://arxiv.org/pdf/1911.10183) to LLMs trained with **Direct Preference Optimisation (DPO)**.
+- [Interactive Text Ranking with Bayesian Optimisation](https://arxiv.org/pdf/1911.10183) to LLMs trained with **Direct Preference Optimisation (DPO)**.
 
 ### GPPL setting
 - Latent utility function over items
