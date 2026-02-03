@@ -93,7 +93,7 @@ Recent work suggests that LLM-based evaluators can act as strong oracles for pre
 
 - **LLM evaluators can outperform traditional automatic metrics** for many tasks (e.g., Chen et al., 2023).
 - For summarisation in particular, *LLM-as-a-judge* style evaluations have been shown to correlate strongly with humans. In the DPO setting, (Rafailov et al., 2023) report that GPT-4 judgements when appropriately prompted-align well with human preferences.
-- Reported GPT-4 vs human agreement is often comparable to (or higher than) **inter-annotator agreement** on the same summarisation comparisons (Muldrew, 2024).
+- Reported GPT-4 vs human agreement is often comparable to (or higher than) **inter-annotator agreement** on the same summarisation comparisons (Muldrew et al., 2024).
 
 ### Judge model
 
