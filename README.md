@@ -2,19 +2,17 @@
 
 This repository implements **Bayesian DPO**, a method for personalising large language models (LLMs) using only a small number of human preference labels.
 
-We adapt a Bayesian optimisation framework for [Interactive Text Ranking with Bayesian Optimisation](https://arxiv.org/pdf/1911.10183) to **DPO-trained LLMs**, replacing Gaussian-process preference models with Bayesian LoRA uncertainty approximations. We evaluate three **Bayesian approximations** **(MC Dropout (MCD), Laplace, and SWAG)** and compare them against a non-Bayesian baseline. Empirically, MCD achieves the best performance in our experiments.
+We adapt a Bayesian optimisation framework for [Interactive Text Ranking with Bayesian Optimisation](https://arxiv.org/pdf/1911.10183) to **DPO-trained LLMs**, replacing Gaussian-process preference models with Bayesian LoRA uncertainty approximations. We evaluate three **Bayesian approximations** **(MC Dropout (MCD), Laplace, and SWAG)** and compare them against a non-Bayesian baseline. At the currect state, MCD performs the best performance in our experiments.
 
 ---
 
-
-Reinforcement Learning from Human Feedback (RLHF) is effective but expensive
 
 **This project investigates**:
 
 > Can we personalise an LLM to an individual user from only a small number of pairwise preference labels?
 
 Our approach combines:
-- Bayesian active selection of response pairs: we estimate uncertainty over candidate utilities and query the user on comparisons that are expected to be maximally informative (MCD by default; Laplace and SWAG as alternatives).
+- Bayesian active selection of response pairs: we estimate uncertainty over candidate utilities and query the user on comparisons that are expected to be maximally informative (MCD, Laplace and SWAG).
 - Efficient preference learning via DPO while training only LoRA parameters.
 
 Across our experiments, MCD provides the strongest results relative to Laplace, SWAG, and a non-Bayesian selection baseline.
@@ -57,18 +55,18 @@ For each topic, we construct three types of candidates:
 This mixed pool provides diverse candidate responses for preference-based learning and active selection, covering both well-formed and degraded summaries alongside model-generated abstractive ones.
 
 
-The reference summaries are not used for training the preference model, but are used for: **Anchor-based evaluation**
+The reference summaries are not used for training the preference model, but are used for approximate full pairwise ranking via comparison against a fixed anchor set.
 
 The DUC 2004 dataset does **not** provide preference labels. In principle, we could recover a full ranking over candidate summaries by asking an LLM judge to compare every pair, but this quickly becomes computationally infeasible: a full pairwise tournament over N candidates costs O(N^2) judge comparisons (approximately N(N−1)/2).
 
-To make evaluation possible, we use an **anchor-based evaluation** protocol:
+To make evaluation possible, we use an fixed anchor set (M=32) protocol:
 - We select a small set of **anchors** (we use M = 32).
 - For each candidate summary, we estimate a relevance/quality score as its **win-rate against the anchors**.
 - This reduces evaluation cost from O(N^2) to O(NM).
   
 For example, with N = 1000 candidates and M = 32 anchors:
   - Full tournament: ≈ 1000 · 999 / 2 ≈ 5×10^5 comparisons
-  - Anchor-based: 1000 · 32 = 3.2×10^4 comparisons (over an order of magnitude cheaper)
+  - Anchor: 1000 · 32 = 3.2×10^4 comparisons (over an order of magnitude cheaper)
     
 This approach avoids judging all candidate pairs while still producing a meaningful relative ranking signal.
 
@@ -118,8 +116,6 @@ The judge is prompted to compare **Summary A vs Summary B** for the same source 
 
 We reuse the GPPL implementation from: [Simpson et al. (2020)](https://github.com/UKPLab/tacl2020-interactive-ranking)
 
-This serves as a strong non-LLM baseline.
-
 ---
 
 ## Our Method: Bayesian DPO with LoRA
@@ -132,7 +128,7 @@ We replace the GP preference model (as used in GPPL-style methods) with a **DPO-
 
 #### Bayesian modelling of the surrogate
 
-We support multiple Bayesian approximations over the LoRA-adapted policy. In our experiments, **MCD** is the best-performing option, with **Laplace** and **SWAG**
+We support multiple Bayesian approximations over the LoRA-adapted policy. In our experiments, **MCD**, **Laplace** and **SWAG**
 
 **MC Dropout (the best)**
 1. Train a MAP LoRA policy using DPO
