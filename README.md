@@ -32,7 +32,7 @@ They used a Gaussian process and did per-topic optimisation
 
 ---
 
-## Data
+## DataSet
 
 We use a topic-based summarisation dataset (**DUC 2004**) from [the DUC 2004 benchmark](https://duc.nist.gov/duc2004/).
 
@@ -123,33 +123,12 @@ We support multiple Bayesian approximations over the LoRA-adapted policy. In our
 4. Select the next comparison using Bayesian acquisition functions
 
 **Laplace**
-1. Train a MAP LoRA policy using DPO
-2. Estimate curvature over LoRA parameters using **K-FAC**
-3. Construct a **Laplace posterior** over LoRA parameters (diagonal or diagonal + low-rank, depending on config)
-4. Propagate parameter uncertainty to candidate utility predictions via linearization
-5. Select queries using Bayesian acquisition functions
 
 **SWAG**
-1. Train the LoRA policy using DPO while periodically collecting LoRA snapshots
-2. Fit a SWAG posterior (mean + diagonal variance + low-rank subspace)
-3. Sample LoRA parameters to obtain a posterior over candidate utilities
-4. Select queries using Bayesian acquisition functions
-
 
 --- 
 # Acquisition function 
 Similar to Simpson et al. 2020 ([https://arxiv.org/pdf/1911.10183](https://arxiv.org/pdf/1911.10183))
-
---- 
-# Active learning loop (common to all Bayesian modes)
-
-At each round, we do these
-1. Score candidates for the current topic using the current policy
-2. Use the chosen Bayesian approximation to estimate uncertainty over utilities
-3. Select an informative pair of candidates via an acquisition function
-4. Obtain a preference label (simulated user aka LLM-judge)
-5. Update the LoRA policy with DPO on the accumulated preference pairs
-
 
 --- 
 # Evaluation
