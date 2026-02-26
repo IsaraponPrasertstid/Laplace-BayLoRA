@@ -2,7 +2,9 @@
 
 This repository implements **Bayesian DPO**, a method for personalising large language models (LLMs) using only a small number of human preference labels.
 
-We adapt a Bayesian optimisation framework for [Interactive Text Ranking with Bayesian Optimisation](https://arxiv.org/pdf/1911.10183) to **DPO-trained LLMs**, replacing Gaussian-process preference models with Bayesian LoRA uncertainty approximations. We evaluate three **Bayesian approximations** **(MC Dropout (MCD), Laplace, and SWAG)** and compare them against a non-Bayesian baseline. At the currect state, MCD performs the best performance in our experiments.
+We adapt a Bayesian optimisation framework for [Interactive Text Ranking with Bayesian Optimisation](https://arxiv.org/pdf/1911.10183) to **DPO-trained LLMs** by replacing Gaussian-process preference models with Bayesian LoRA uncertainty approximations. We evaluate three **Bayesian approximations** **(MC Dropout (MCD), Laplace, and SWAG)** and compare them against a non-Bayesian baseline. 
+
+At the currect state, MCD performs the best performance in our experiments.
 
 ---
 
@@ -41,10 +43,9 @@ We use a topic-based summarisation dataset (**DUC 2004**) from [the DUC 2004 ben
 
 The dataset contains:
 - 50 topics, each consisting of a cluster of multiple related news articles.
-- For each topic, a document set that is concatenated into a single input post.
-- Four human-written reference summaries per topic, used for evaluation and anchor selection.
+- There is 4 our human-written reference summaries per topic. We used this for evaluation and anchor selection.
 
-We concatenate all documents within each DUC 2004 topic into a single source text and generate a mixed candidate pool of summaries to reflect real-world variation in summary quality and style. Each candidate summary is constrained to around 100 words.
+We concatenate all documents within each DUC 2004 topic into a single source text and generate a mixed candidate pool of summaries. This aims to reflect real-world variation in summary quality and style (good/bad). Each candidate summary is constrained to around 100 words.
 
 For each topic, we construct three types of candidates:
 - Good extractive summaries: sentence-level extraction that preserves the original document order, producing coherent summaries without truncating sentences.
@@ -54,9 +55,8 @@ For each topic, we construct three types of candidates:
 
 The reference summaries are not used for training the preference model, but are used for approximate full pairwise ranking via comparison against a fixed anchor set.
 
-The DUC 2004 dataset does **not** provide preference labels. In principle, we could recover a full ranking over candidate summaries by asking an LLM judge to compare every pair, but this quickly becomes computationally infeasible: a full pairwise tournament over N candidates costs O(N^2) judge comparisons (approximately N(N−1)/2).
+The DUC 2004 dataset does **not** provide preference labels. We could recover a full ranking over candidate summaries by asking an LLM judge to compare every pair, but this quickly becomes computationally infeasible. So, we used fixed anchor to reduce time. This approach avoids judging all candidate pairs while still producing a meaningful relative ranking signal.
 
-To make evaluation possible, we use an fixed anchor set (M=32) protocol:
 - We select a small set of **anchors** (we use M = 32).
 - For each candidate summary, we estimate a relevance/quality score as its **win-rate against the anchors**.
 - This reduces evaluation cost from O(N^2) to O(NM).
@@ -65,18 +65,17 @@ For example, with N = 1000 candidates and M = 32 anchors:
   - Full tournament: ≈ 1000 · 999 / 2 ≈ 5×10^5 comparisons
   - Anchor: 1000 · 32 = 3.2×10^4 comparisons (over an order of magnitude cheaper)
     
-This approach avoids judging all candidate pairs while still producing a meaningful relative ranking signal.
 
 ### How we choose anchors (why references help)
 
 Anchor selection matters. If anchors are sampled uniformly at random, they may over-represent only the extreme tails (very strong or very weak summaries), which can make comparisons less informative and rankings less stable.
 
-To ensure anchors are representative, we select anchors to **cover the candidate-quality distribution**:
+To ensure anchors are representative, we select anchors to **cover the candidate-quality distribution** by using **ROUGE-L**:
 
 - When reference summaries are available, we compute a rough quality proxy for each candidate using **ROUGE-L** against the four human references.
-- We then select anchors **stratified across the ROUGE-L score distribution** (e.g., bottom / middle / top regions). This ensures coverage of low-quality, medium-quality, and high-quality candidates.
+- We then select anchors **stratified across the ROUGE-L score distribution** (e.g., bottom / middle / top regions). This ensures coverage of low-quality, medium-quality, and high-quality candidates in our anchor reference.
 
-**Reference summaries are never used as supervision for preference training**. They are only used to pick anchors that cover the distribution
+P.S. **Reference summaries are never used as supervision for preference training**. They are only used to pick anchors that cover the distribution
 
 ---
 
@@ -88,7 +87,7 @@ Recent work suggests that LLM evaluators can act as strong oracles for preferenc
 
 - **LLM judge can outperform traditional automatic metrics** for many tasks (Chen et al., 2023).
 - For summarisation in particular, *LLM-as-a-judge* style evaluations have been shown to correlate strongly with humans. In the DPO setting, (Rafailov et al., 2023) report that GPT-4 judgements when appropriately prompted-align well with human preferences.
-- Reported GPT-4 vs human agreement is often comparable to (or higher than) **inter-annotator agreement** on the same summarisation comparisons (Muldrew et al., 2024).
+- Muldrew et al. (2024) reported taht GPT-4 vs human agreement is often comparable to (or higher than) **inter-annotator agreement** on the same summarisation comparisons.
 
 ### Judge model
 
