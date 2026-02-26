@@ -8,18 +8,6 @@ At the current state, MCD performs the best performance in our experiments.
 
 ---
 
-
-**This project investigates**:
-
-> Can we personalise an LLM to an individual user from only a small number of pairwise preference labels?
-
-Our approach combines:
-- Bayesian active selection of response pairs: we estimate uncertainty over candidate utilities and query the user on comparisons that are expected to be maximally informative (MCD, Laplace and SWAG).
-- Efficient preference learning via DPO while training only LoRA parameters.
-
-
----
-
 ## Bayesian DPO
 
 We adapt the Bayesian optimisation framework from [Interactive Text Ranking with Bayesian Optimisation](https://arxiv.org/pdf/1911.10183) to LLMs trained with **Direct Preference Optimisation (DPO)**.
@@ -106,7 +94,7 @@ We reuse the GPPL implementation from: [Simpson et al. (2020)](https://github.co
 
 ## Our Method: Bayesian DPO with LoRA
 
-We replace the GP preference model (as used in GPPL-style methods) with a **DPO-trained, LoRA-adapted LLM** that acts as the utility surrogate:
+We replace the GP preference model (as used in Simpson et al.) with a **DPO-trained, LoRA-adapted LLM** that acts as the utility surrogate:
 
 - **Base model:** a `Qwen/Qwen2.5-0.5B` causal LLM ([https://huggingface.co/Qwen/Qwen2.5-0.5B](https://huggingface.co/Qwen/Qwen2.5-0.5B))
 - **Adaptation:** LoRA (trainable adapters; base weights frozen)
@@ -114,7 +102,7 @@ We replace the GP preference model (as used in GPPL-style methods) with a **DPO-
 
 #### Bayesian modelling of the surrogate
 
-We support multiple Bayesian approximations over the LoRA-adapted policy. In our experiments, **MCD**, **Laplace** and **SWAG**
+In our experiments, we used **MCD**, **Laplace** and **SWAG**
 
 **MC Dropout (the best)**
 1. Train a MAP LoRA policy using DPO
