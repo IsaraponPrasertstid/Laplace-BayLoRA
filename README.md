@@ -85,7 +85,7 @@ Our method requires pairwise preference labels (A/B comparisons). Since the data
 
 Recent work suggests that LLM evaluators can act as strong oracles for preference-style judgements:
 
-- **LLM judge can outperform traditional automatic metrics** for many tasks (Chen et al., 2023).
+- Prior work suggests that LLM-based evaluators can be competitive with traditional automatic metrics (Chen et al., 2023).
 - For summarisation in particular, *LLM-as-a-judge* style evaluations have been shown to correlate strongly with humans. In the DPO setting, (Rafailov et al., 2023) report that GPT-4 judgements when appropriately prompted-align well with human preferences.
 - Muldrew et al. (2024) reported taht GPT-4 vs human agreement is often comparable to (or higher than) **inter-annotator agreement** on the same summarisation comparisons.
 
