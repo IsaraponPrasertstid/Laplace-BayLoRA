@@ -15,7 +15,6 @@ Our approach combines:
 - Bayesian active selection of response pairs: we estimate uncertainty over candidate utilities and query the user on comparisons that are expected to be maximally informative (MCD, Laplace and SWAG).
 - Efficient preference learning via DPO while training only LoRA parameters.
 
-Across our experiments, MCD provides the strongest results relative to Laplace, SWAG, and a non-Bayesian selection baseline.
 
 ---
 
@@ -79,7 +78,7 @@ To ensure anchors are representative, we select anchors to **cover the candidate
 - When reference summaries are available, we compute a rough quality proxy for each candidate using **ROUGE-L** against the four human references.
 - We then select anchors **stratified across the ROUGE-L score distribution** (e.g., bottom / middle / top regions). This ensures coverage of low-quality, medium-quality, and high-quality candidates.
 
-Importantly, **reference summaries are never used as supervision for preference training**. They are only used to pick anchors that cover the distribution
+**Reference summaries are never used as supervision for preference training**. They are only used to pick anchors that cover the distribution
 
 ---
 
@@ -87,7 +86,7 @@ Importantly, **reference summaries are never used as supervision for preference 
 
 Our method requires pairwise preference labels (A/B comparisons). Since the dataset (DUC 2004) does not include such labels, we use a **simulated user** in the form of an **LLM judge** to generate preference comparisons reproducibly.
 
-Recent work suggests that LLM-based evaluators can act as strong oracles for preference-style judgements:
+Recent work suggests that LLM evaluators can act as strong oracles for preference-style judgements:
 
 - **LLM evaluators can outperform traditional automatic metrics** for many tasks (e.g., Chen et al., 2023).
 - For summarisation in particular, *LLM-as-a-judge* style evaluations have been shown to correlate strongly with humans. In the DPO setting, (Rafailov et al., 2023) report that GPT-4 judgements when appropriately prompted-align well with human preferences.
