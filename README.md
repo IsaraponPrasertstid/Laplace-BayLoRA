@@ -4,7 +4,7 @@ This repository implements **Bayesian DPO**, a method for personalising large la
 
 We adapt a Bayesian optimisation framework for [Interactive Text Ranking with Bayesian Optimisation](https://arxiv.org/pdf/1911.10183) to **DPO-trained LLMs** by replacing Gaussian-process preference models with Bayesian LoRA uncertainty approximations. We evaluate three **Bayesian approximations** **(MC Dropout (MCD), Laplace, and SWAG)** and compare them against a non-Bayesian baseline. 
 
-At the currect state, MCD performs the best performance in our experiments.
+At the current state, MCD performs the best performance in our experiments.
 
 ---
 
@@ -22,18 +22,13 @@ Our approach combines:
 
 ## Bayesian DPO
 
-We adapt the Bayesian optimisation framework from:
-
-- [Interactive Text Ranking with Bayesian Optimisation](https://arxiv.org/pdf/1911.10183) to LLMs trained with **Direct Preference Optimisation (DPO)**.
+We adapt the Bayesian optimisation framework from [Interactive Text Ranking with Bayesian Optimisation](https://arxiv.org/pdf/1911.10183) to LLMs trained with **Direct Preference Optimisation (DPO)**.
 
 ### GPPL setting
-- Latent utility function over items
-- Modelled using a Gaussian process
-- Active learning selects the most informative pairwise comparisons
+They used a Gaussian process and did per-topic optimisation
 
 ### Our setting (Bayesian DPO)
 - We replace the Gaussian process in GPPL with a Bayesian LoRA surrogate built on a DPO-trained LLM.
-- We approximate the Bayesian posterior and uncertainty using MCD, Laplace, or SWAG.
 
 ---
 
@@ -43,7 +38,7 @@ We use a topic-based summarisation dataset (**DUC 2004**) from [the DUC 2004 ben
 
 The dataset contains:
 - 50 topics, each consisting of a cluster of multiple related news articles.
-- There is 4 our human-written reference summaries per topic. We used this for evaluation and anchor selection.
+- There are 4 human-written reference summaries per topic. We used this for evaluation and anchor selection.
 
 We concatenate all documents within each DUC 2004 topic into a single source text and generate a mixed candidate pool of summaries. This aims to reflect real-world variation in summary quality and style (good/bad). Each candidate summary is constrained to around 100 words.
 
@@ -59,12 +54,7 @@ The DUC 2004 dataset does **not** provide preference labels. We could recover a 
 
 - We select a small set of **anchors** (we use M = 32).
 - For each candidate summary, we estimate a relevance/quality score as its **win-rate against the anchors**.
-- This reduces evaluation cost from O(N^2) to O(NM).
-  
-For example, with N = 1000 candidates and M = 32 anchors:
-  - Full tournament: ≈ 1000 · 999 / 2 ≈ 5×10^5 comparisons
-  - Anchor: 1000 · 32 = 3.2×10^4 comparisons (over an order of magnitude cheaper)
-    
+
 
 ### How we choose anchors (why references help)
 
@@ -87,7 +77,7 @@ Recent work suggests that LLM evaluators can act as strong oracles for preferenc
 
 - Prior work suggests that LLM-based evaluators can be competitive with traditional automatic metrics (Chen et al., 2023).
 - For summarisation in particular, *LLM-as-a-judge* style evaluations have been shown to correlate strongly with humans. In the DPO setting, (Rafailov et al., 2023) report that GPT-4 judgements when appropriately prompted-align well with human preferences.
-- Muldrew et al. (2024) reported taht GPT-4 vs human agreement is often comparable to (or higher than) **inter-annotator agreement** on the same summarisation comparisons.
+- Muldrew et al. (2024) reported that GPT-4 vs human agreement is often comparable to (or higher than) **inter-annotator agreement** on the same summarisation comparisons.
 
 ### Judge model
 
@@ -135,7 +125,7 @@ We support multiple Bayesian approximations over the LoRA-adapted policy. In our
 **Laplace**
 1. Train a MAP LoRA policy using DPO
 2. Estimate curvature over LoRA parameters using **K-FAC**
-3. Construct a **Laplace posterior** over LoRA parameters (diagonal or diagonal + low-rank, depending on configuration)
+3. Construct a **Laplace posterior** over LoRA parameters (diagonal or diagonal + low-rank, depending on config)
 4. Propagate parameter uncertainty to candidate utility predictions via linearization
 5. Select queries using Bayesian acquisition functions
 
